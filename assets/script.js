@@ -1,5 +1,4 @@
-// v8 fixed: robust article rewriting + safer sentence splitting + hardened generate handler
-// v9 — no intro hooks, larger paste box, smarter hashtags, IG-caption rewrite mode
+// v9.1 — mode switch made robust (event delegation), no intro hooks, smarter hashtags
 (function(){
   const $ = (sel)=>document.querySelector(sel);
 
@@ -222,7 +221,7 @@
     $("#crumbs").textContent = modeText+" • "+state.platform+" • "+state.tone+" • "+state.length+(state.useCTA?" • Call To Action: On":" • Call To Action: Off");
   }
 
-  // Bindings
+  // Original 'change' binding (keep it)
   document.querySelectorAll('input[name="mode"]').forEach(r=>{
     r.addEventListener("change",(e)=>{
       state.mode = e.target.value;
@@ -231,6 +230,23 @@
       render();
     });
   });
+
+  // EXTRA: event delegation so mode switching works even if 'change' didn’t bind
+  const modesContainer = document.querySelector('.modes');
+  if (modesContainer) {
+    modesContainer.addEventListener('click', (e) => {
+      const input = e.target.closest('input[type="radio"][name="mode"]');
+      if (!input) return;
+      state.mode = input.value;
+      document.getElementById("nicheCard").style.display =
+        state.mode === "niche" ? "" : "none";
+      document.getElementById("articleCard").style.display =
+        (state.mode === "rewrite" || state.mode === "ig") ? "" : "none";
+      render();
+    });
+  }
+
+  // Other bindings
   $("#platform").addEventListener("change",e=>state.platform=e.target.value);
   $("#tone").addEventListener("change",e=>state.tone=e.target.value);
   $("#length").addEventListener("change",e=>state.length=e.target.value);
@@ -277,6 +293,51 @@
     const a=document.createElement("a"); a.href=url; a.download="captions_"+Date.now()+".csv"; a.click();
     URL.revokeObjectURL(url);
   });
-  $("#reset").
+  $("#reset").addEventListener("click",()=>{ state.captions=[]; render(); });
 
+  // Research links
+  function q(s){return encodeURIComponent(s);}
+  function openResearch(which){
+    const baseTopic = state.mode==="niche" ? (state.niche||"your topic") : (state.articleText.slice(0,80)||"your topic");
+    const core = `${baseTopic} tips ideas ${state.platform} ${state.tone} ${state.length}`;
+    const map={
+      google:`https://www.google.com/search?q=${q(core)}&tbm=vid`,
+      reddit:`https://www.google.com/search?q=${q(core+" site:reddit.com")}`,
+      tiktok:`https://www.google.com/search?q=${q(core+" site:tiktok.com")}`,
+      instagram:`https://www.google.com/search?q=${q(core+" site:instagram.com")}`
+    };
+    window.open(map[which],"_blank");
+  }
+  $("#openGoogle").addEventListener("click",()=>openResearch("google"));
+  $("#openReddit").addEventListener("click",()=>openResearch("reddit"));
+  $("#openTikTok").addEventListener("click",()=>openResearch("tiktok"));
+  $("#openInstagram").addEventListener("click",()=>openResearch("instagram"));
+
+  // Serverless article fetch (article mode only)
+  async function fetchArticle(){
+    const url = ($("#articleUrl").value||"").trim();
+    const status = $("#fetchStatus");
+    if (!url){ status.textContent="Enter a URL."; return; }
+    if (state.mode!=="rewrite"){ status.textContent="Fetching is only for Article mode. Switch to 'Rewrite from article'."; return; }
+    status.textContent="Fetching...";
+    try{
+      const res = await fetch("/.netlify/functions/fetch-article",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({url})
+      });
+      if (!res.ok) throw new Error("Fetch failed");
+      const data = await res.json();
+      const text = (data.text||"").slice(0,20000);
+      $("#articleText").value = text;
+      state.articleText = text;
+      status.textContent = "Fetched and loaded into the text box.";
+    }catch(e){
+      status.textContent = "Fetch failed. Site may block bots (CORS/anti-scrape). Paste the text instead.";
+    }
+  }
+  $("#btnFetch").addEventListener("click", fetchArticle);
+
+  render();
+})();
 
