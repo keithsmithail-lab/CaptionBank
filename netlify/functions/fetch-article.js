@@ -1,9 +1,12 @@
 // netlify/functions/fetch-article.js
 // Improved fetcher: realistic headers + redirects
+// Improved fetcher: realistic headers + redirects
 export async function handler(event) {
   try {
     const { url } = JSON.parse(event.body || "{}");
-    if (!url || !/^https?:\/\//i.test(url)) return { statusCode: 400, body: "Missing or invalid url" };
+    if (!url || !/^https?:\/\//i.test(url)) {
+      return { statusCode: 400, body: "Missing or invalid url" };
+    }
 
     const res = await fetch(url, {
       redirect: "follow",
@@ -24,7 +27,11 @@ export async function handler(event) {
       .replace(/\s+/g, " ")
       .trim();
 
-    return { statusCode: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify({ text }) };
+    return {
+      statusCode: 200,
+      headers: { "content-type": "application/json", "access-control-allow-origin": "*" },
+      body: JSON.stringify({ text })
+    };
   } catch (e) {
     return { statusCode: 500, body: e.message || "Error" };
   }
