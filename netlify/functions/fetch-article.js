@@ -1,4 +1,5 @@
-// Improved fetcher: realistic headers + redirects
+// netlify/functions/fetch-article.js
+// Fetches a web page with realistic headers and returns extracted text.
 export async function handler(event) {
   try {
     const { url } = JSON.parse(event.body || "{}");
