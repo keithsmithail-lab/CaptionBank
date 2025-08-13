@@ -3,10 +3,19 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Social Media Caption Bank v9</title>
+  <title>Social Media Caption Bank v9.2</title>
   <link rel="stylesheet" href="assets/styles.css"/>
 </head>
 <body>
+  <div class="topline">
+    <div class="topline-inner">
+      <div>✨ Trusted by 300+ creators • Captions + Canva prompts in seconds</div>
+      <div class="top-actions">
+        <a id="btnUnlock" href="#" class="btn small ghost">🔓 Unlock</a>
+      </div>
+    </div>
+  </div>
+
   <div class="wrap">
     <header class="header">
       <div class="brand">
@@ -42,7 +51,7 @@
 
       <div class="card" id="articleCard" style="display:none">
         <label id="articleLabel">Article text (paste or fetch below)</label>
-        <textarea id="articleText" rows="18" placeholder="Paste the article text or click Fetch from URL..."></textarea>
+        <textarea id="articleText" rows="18" placeholder="Paste the article text (or IG caption) here..."></textarea>
         <div class="fetchRow" id="fetchRow">
           <input id="articleUrl" type="url" placeholder="https://example.com/article"/>
           <button id="btnFetch" class="btn alt">Fetch from URL</button>
@@ -104,6 +113,11 @@
           <input id="styleText" type="text" placeholder="clean, bright, high-contrast, friendly"/>
         </label>
       </div>
+      <div class="card">
+        <label>Always include hashtags (optional)
+          <input id="customTags" type="text" placeholder="#insurance #WFH #yourbrand"/>
+        </label>
+      </div>
       <div class="card info">
         <div class="muted">Each caption ends with a blank line, then a Canva image prompt on its own paragraph.</div>
       </div>
@@ -112,15 +126,24 @@
       </div>
     </section>
 
+    <!-- Presets -->
     <section class="grid">
       <div class="card span2">
-        <h3 class="cardTitle">Trending research (quick links)</h3>
-        <p class="muted">Open tabs to check what’s performing now. (No login or API needed.)</p>
-        <div class="researchRow">
-          <button id="openGoogle" class="btn alt">Open Google results</button>
-          <button id="openReddit" class="btn alt">Open Reddit results</button>
-          <button id="openTikTok" class="btn alt">Open TikTok results</button>
-          <button id="openInstagram" class="btn alt">Open Instagram results</button>
+        <h3 class="cardTitle">Starter presets</h3>
+        <div id="starterPresets" class="presets"></div>
+      </div>
+      <div class="card">
+        <h3 class="cardTitle">My preset</h3>
+        <div class="preset-actions">
+          <button id="savePreset" class="btn alt">Save current as My Preset</button>
+          <button id="loadPreset" class="btn ghost">Load My Preset</button>
+          <button id="clearPreset" class="btn ghost">Clear My Preset</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 class="cardTitle">Settings</h3>
+        <div class="preset-actions">
+          <button id="resetSettings" class="btn ghost">Reset to defaults</button>
         </div>
       </div>
     </section>
@@ -133,11 +156,33 @@
 
     <footer class="footer">
       <div>Note. Captions are templates. Adjust compliance-sensitive statements for your niche.</div>
+      <div class="links">
+        <a href="#" id="openFAQ">FAQ</a> •
+        <a href="#" id="openChangelog">Changelog</a> •
+        <a href="mailto:support@example.com">Support</a> •
+        <span>v9.2</span>
+      </div>
     </footer>
   </div>
 
+  <!-- Unlock / License modal -->
+  <div id="modalWrap" class="modalWrap">
+    <div class="modal">
+      <button class="modalClose" id="modalClose">×</button>
+      <h3>Unlock unlimited captions</h3>
+      <p class="muted">Trial is limited to 3 captions/run. Paste a Gumroad license key to unlock unlimited.</p>
+      <input id="licenseInput" type="text" placeholder="Paste your Gumroad license key"/>
+      <div class="modalRow">
+        <button id="verifyLicense" class="btn">Verify license (Gumroad)</button>
+        <button id="buyGumroad" class="btn alt">Buy on Gumroad</button>
+        <button id="buyStripe" class="btn ghost">Pay with Stripe</button>
+      </div>
+      <div id="licenseStatus" class="muted"></div>
+    </div>
+  </div>
+
   <!-- Cache-busted so the newest JS always loads -->
-  <script src="assets/script.js?v=9.1"></script>
+  <script src="assets/script.js?v=9.2"></script>
 </body>
 </html>
 
