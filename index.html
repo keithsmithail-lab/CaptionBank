@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Social Media Caption Bank v8</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Social Media Caption Bank v9</title>
+  <link rel="stylesheet" href="assets/styles.css"/>
 </head>
 <body>
   <div class="wrap">
@@ -13,7 +13,7 @@
         <div class="logo">CB</div>
         <div class="titles">
           <h1>Social Media Caption Bank</h1>
-          <p>Generate by niche or rewrite from an article — plus Canva prompts</p>
+          <p>Generate by niche or rewrite from an article/Instagram caption — plus Canva prompts</p>
         </div>
       </div>
       <div class="actions">
@@ -29,20 +29,22 @@
         <div class="modes">
           <label class="pill"><input type="radio" name="mode" value="niche" checked><span>Generate by niche</span></label>
           <label class="pill"><input type="radio" name="mode" value="rewrite"><span>Rewrite from article</span></label>
+          <label class="pill"><input type="radio" name="mode" value="ig"><span>Rewrite Instagram caption (paste text)</span></label>
         </div>
-        <div class="muted">Tip: In rewrite mode you can paste text or fetch a URL via the built‑in serverless function.</div>
+        <div class="muted" id="modeHint">Tip: In rewrite modes you can paste text, or (for articles) fetch a URL via the built-in serverless function.</div>
       </div>
+
       <div class="card" id="nicheCard">
         <label>Niche (type anything)
-          <input id="niche" type="text" placeholder="e.g., Life insurance for new parents in CA">
+          <input id="niche" type="text" placeholder="e.g., Life insurance for new parents in CA"/>
         </label>
       </div>
 
       <div class="card" id="articleCard" style="display:none">
-        <label>Article text (paste or fetch below)</label>
+        <label id="articleLabel">Article text (paste or fetch below)</label>
         <textarea id="articleText" rows="8" placeholder="Paste the article text or click Fetch from URL..."></textarea>
-        <div class="fetchRow">
-          <input id="articleUrl" type="url" placeholder="https://example.com/article">
+        <div class="fetchRow" id="fetchRow">
+          <input id="articleUrl" type="url" placeholder="https://example.com/article"/>
           <button id="btnFetch" class="btn alt">Fetch from URL</button>
         </div>
         <div id="fetchStatus" class="muted"></div>
@@ -51,10 +53,8 @@
       <div class="card">
         <label>Platform
           <select id="platform">
-            <option>Instagram</option>
-            <option>Facebook</option>
-            <option>TikTok</option>
-            <option>LinkedIn</option>
+            <option>Instagram</option><option>Facebook</option>
+            <option>TikTok</option><option>LinkedIn</option>
           </select>
         </label>
       </div>
@@ -62,10 +62,8 @@
       <div class="card">
         <label>Tone
           <select id="tone">
-            <option>Friendly</option>
-            <option>Bold</option>
-            <option>Professional</option>
-            <option>Empathetic</option>
+            <option>Friendly</option><option>Bold</option>
+            <option>Professional</option><option>Empathetic</option>
             <option>Funny</option>
           </select>
         </label>
@@ -74,9 +72,7 @@
       <div class="card">
         <label>Length
           <select id="length">
-            <option>Short</option>
-            <option selected>Medium</option>
-            <option>Long</option>
+            <option>Short</option><option selected>Medium</option><option>Long</option>
           </select>
         </label>
       </div>
@@ -84,38 +80,20 @@
 
     <section class="grid">
       <div class="card row">
-        <div>
-          <div class="muted">Use emojis</div>
-          <div class="value" id="valEmojis">On</div>
-        </div>
-        <label class="switch">
-          <input id="useEmojis" type="checkbox" checked>
-          <span></span>
-        </label>
+        <div><div class="muted">Use emojis</div><div class="value" id="valEmojis">On</div></div>
+        <label class="switch"><input id="useEmojis" type="checkbox" checked><span></span></label>
       </div>
       <div class="card row">
-        <div>
-          <div class="muted">Include hashtags</div>
-          <div class="value" id="valTags">On</div>
-        </div>
-        <label class="switch">
-          <input id="useHashtags" type="checkbox" checked>
-          <span></span>
-        </label>
+        <div><div class="muted">Include hashtags</div><div class="value" id="valTags">On</div></div>
+        <label class="switch"><input id="useHashtags" type="checkbox" checked><span></span></label>
       </div>
       <div class="card row">
-        <div>
-          <div class="muted">Include <strong>Call To Action</strong></div>
-          <div class="value" id="valCTA">On</div>
-        </div>
-        <label class="switch">
-          <input id="useCTA" type="checkbox" checked>
-          <span></span>
-        </label>
+        <div><div class="muted">Include <strong>Call To Action</strong></div><div class="value" id="valCTA">On</div></div>
+        <label class="switch"><input id="useCTA" type="checkbox" checked><span></span></label>
       </div>
       <div class="card">
         <label>How many captions
-          <input id="qty" type="number" min="1" max="50" value="5">
+          <input id="qty" type="number" min="1" max="50" value="5"/>
         </label>
       </div>
     </section>
@@ -123,7 +101,7 @@
     <section class="grid">
       <div class="card">
         <label>Visual style for image (optional)
-          <input id="styleText" type="text" placeholder="clean, bright, high‑contrast, friendly">
+          <input id="styleText" type="text" placeholder="clean, bright, high-contrast, friendly"/>
         </label>
       </div>
       <div class="card info">
@@ -154,10 +132,10 @@
     </section>
 
     <footer class="footer">
-      <div>Note. Captions are templates. Adjust compliance‑sensitive statements for your niche.</div>
+      <div>Note. Captions are templates. Adjust compliance-sensitive statements for your niche.</div>
     </footer>
   </div>
-
   <script src="assets/script.js"></script>
 </body>
 </html>
+
