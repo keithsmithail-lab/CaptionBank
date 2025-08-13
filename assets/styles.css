@@ -1,4 +1,3 @@
-/* Light premium theme and layout */
 :root{
   --bg1:#f9fbff; --bg2:#eef5ff; --ink:#0f172a; --muted:#51607f;
   --brand1:#6d28d9; --brand2:#06b6d4; --card:#ffffff; --stroke:#e6edf8;
@@ -59,7 +58,7 @@ select,input,textarea{
   background:#ffffff;border:1px solid #d7e3fb;color:var(--ink);
   padding:12px;border-radius:12px;outline:none;font-family:inherit;font-size:15px
 }
-#articleText{min-height:320px} /* larger paste box */
+#articleText{min-height:320px}
 textarea{resize:vertical}
 select:focus,input:focus,textarea:focus{border-color:#6d28d9;box-shadow:0 0 0 3px rgba(109,40,217,.15)}
 
@@ -104,9 +103,32 @@ select:focus,input:focus,textarea:focus{border-color:#6d28d9;box-shadow:0 0 0 3p
 /* Modal */
 .modalWrap{position:fixed;inset:0;background:rgba(15,23,42,.42);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
 .modalWrap.open{display:flex}
-.modal{background:#fff;border:1px solid var(--stroke);border-radius:18px;padding:18px;max-width:560px;width:100%;box-shadow:0 24px 60px rgba(15,23,42,.25)}
+
+/* Critical fix: make X clickable and in the right spot */
+.modal{
+  position: relative;
+  background:#fff;
+  border:1px solid var(--stroke);
+  border-radius:18px;
+  padding:18px;
+  max-width:560px;
+  width:100%;
+  box-shadow:0 24px 60px rgba(15,23,42,.25)
+}
 .modal h3{margin-top:0}
-.modalClose{position:absolute;margin:-6px 0 0 -6px;transform:translate(100%,-100%);background:#fff;border:1px solid var(--stroke);border-radius:8px;width:28px;height:28px;cursor:pointer}
+.modalClose{
+  position:absolute;
+  top:10px;
+  right:10px;
+  background:#fff;
+  border:1px solid var(--stroke);
+  border-radius:8px;
+  width:28px;
+  height:28px;
+  cursor:pointer;
+  display:grid;
+  place-items:center;
+}
 .modalRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 
 
