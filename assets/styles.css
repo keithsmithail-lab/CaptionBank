@@ -31,6 +31,22 @@ body{
 .titles h1{margin:0;font-size:24px}
 .titles p{margin:4px 0 0;color:var(--muted);font-size:14px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
+/* — Tagline — */
+.tagline{
+  margin:4px 0 0;
+  font-weight:800;        /* heavy, readable weight */
+  font-size:18px;         /* larger than body without dwarfing the H1 */
+  line-height:1.35;
+  letter-spacing:.2px;
+  color:#0f172a;          /* solid high-contrast */
+}
+.tagline strong{
+  font-weight:900;        /* extra emphasis on “PLUS Canva Prompts!” */
+}
+@media (max-width:560px){
+  .tagline{ font-size:16px; }
+}
+
 
 .btn{
   background:linear-gradient(135deg,var(--brand1),var(--brand2));
