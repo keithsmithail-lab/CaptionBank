@@ -1,14 +1,14 @@
 // v9.2 — Pro polish: presets + saved settings, bigger output, multi copy buttons,
 // trial limiter + license modal (Gumroad verify), Stripe payment link button,
-// "always include hashtags", centered radios fix + robust mode switching.
+// "always include hashtags", centered radios fix + robust mode switching + modal delegates.
 
 (function(){
   const $ = (sel)=>document.querySelector(sel);
 
-  // ===== Config =====
+  // ===== ONE-TIME SETTINGS — EDIT THESE =====
   const VERSION = "9.2";
   const TRIAL_CAP = 3;
-  const GUMROAD_PRODUCT_ID = "REPLACE_WITH_YOUR_GUMROAD_PRODUCT_ID"; // e.g. prod_ABC123
+  const GUMROAD_PRODUCT_ID = "REPLACE_WITH_GUMROAD_ID_OR_PERMALINK"; // e.g. "prod_ABC123" or "captionbank"
   const GUMROAD_PRODUCT_URL = "https://gumroad.com/l/REPLACE";       // your Gumroad product page
   const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/REPLACE";       // your Stripe Payment Link
 
@@ -31,7 +31,6 @@
   };
 
   // ===== Data =====
-  const HOOKS = []; // removed intros (Quick win / Hot take)
   const EMOJI=["✨","✅","💡","📌","📈","🕒","📣","🎯","🔥","💬"];
   const CTAS=[
     "Message me for a quick quote.",
@@ -78,7 +77,6 @@
     try{
       const blob = JSON.parse(localStorage.getItem("cb_settings_v1")||"{}");
       Object.assign(state, blob);
-      // Reflect back to UI
       document.querySelector(`input[name="mode"][value="${state.mode}"]`)?.click();
       $("#niche").value = state.niche || "";
       $("#platform").value = state.platform || "Instagram";
@@ -230,7 +228,6 @@
   }
 
   function render(){
-    // Adjust UI per mode
     const label = $("#articleLabel"), ta=$("#articleText"), fetchRow=$("#fetchRow"), hint=$("#modeHint");
     if (state.mode==="rewrite") {
       label.textContent = "Article text (paste or fetch below)";
@@ -296,7 +293,7 @@
        +state.length+(state.useCTA?" • Call To Action: On":" • Call To Action: Off");
   }
 
-  // ===== Bindings =====
+  // ===== Mode binding with robust click handling =====
   document.querySelectorAll('input[name="mode"]').forEach(r=>{
     r.addEventListener("change",(e)=>{
       state.mode = e.target.value;
@@ -305,7 +302,6 @@
       saveSettings(); render();
     });
   });
-  // Robust event delegation (works even if 'change' misses)
   document.querySelector('.modes')?.addEventListener('click',(e)=>{
     const input = e.target.closest('input[type="radio"][name="mode"]');
     if (!input) return;
@@ -385,7 +381,7 @@
   });
   $("#reset").addEventListener("click",()=>{ state.captions=[]; render(); });
 
-  // Research links
+  // Research links (guard against missing buttons)
   function q(s){return encodeURIComponent(s);}
   function openResearch(which){
     const baseTopic = state.mode==="niche" ? (state.niche||"your topic") : (state.articleText.slice(0,80)||"your topic");
@@ -398,10 +394,10 @@
     };
     window.open(map[which],"_blank");
   }
-  $("#openGoogle").addEventListener("click",()=>openResearch("google"));
-  $("#openReddit").addEventListener("click",()=>openResearch("reddit"));
-  $("#openTikTok").addEventListener("click",()=>openResearch("tiktok"));
-  $("#openInstagram").addEventListener("click",()=>openResearch("instagram"));
+  const og=$("#openGoogle"); if(og) og.addEventListener("click",()=>openResearch("google"));
+  const or=$("#openReddit"); if(or) or.addEventListener("click",()=>openResearch("reddit"));
+  const ot=$("#openTikTok"); if(ot) ot.addEventListener("click",()=>openResearch("tiktok"));
+  const oi=$("#openInstagram"); if(oi) oi.addEventListener("click",()=>openResearch("instagram"));
 
   // Article fetch (serverless)
   async function fetchArticle(){
@@ -428,50 +424,52 @@
   }
   $("#btnFetch").addEventListener("click", fetchArticle);
 
-  // ===== License modal & verification =====
+  // ===== License modal & verification — robust delegation =====
   function openModal(){ $("#modalWrap").classList.add("open"); }
   function closeModal(){ $("#modalWrap").classList.remove("open"); }
-  $("#btnUnlock").addEventListener("click",(e)=>{e.preventDefault(); openModal();});
-  $("#modalClose").addEventListener("click", closeModal);
-  $("#buyGumroad").addEventListener("click", ()=>window.open(GUMROAD_PRODUCT_URL, "_blank"));
-  $("#buyStripe").addEventListener("click", ()=>window.open(STRIPE_PAYMENT_LINK, "_blank"));
+  $("#btnUnlock")?.addEventListener("click",(e)=>{ e.preventDefault(); openModal(); });
+  document.addEventListener("keydown",(e)=>{ if (e.key==="Escape") closeModal(); });
+  $("#modalWrap")?.addEventListener("click",(e)=>{ if (e.target.id==="modalWrap") closeModal(); });
 
-  // Load license state
-  try { state.licensed = localStorage.getItem("cb_license_valid")==="true"; } catch(e){}
+  document.addEventListener("click", async (e)=>{
+    const id = e.target?.id;
+    if (!id) return;
 
-  $("#verifyLicense").addEventListener("click", async ()=>{
-    const key = ($("#licenseInput").value||"").trim();
-    const status = $("#licenseStatus");
-    if (!key) { status.textContent="Enter a license key."; return; }
-    status.textContent="Verifying...";
-    try{
-      const res = await fetch("/.netlify/functions/verify-gumroad",{
-        method:"POST",
-        headers:{"content-type":"application/json"},
-        body:JSON.stringify({license:key, product_id:GUMROAD_PRODUCT_ID})
-      });
-      const data = await res.json();
-      if (data.valid) {
-        localStorage.setItem("cb_license_valid", "true");
-        localStorage.setItem("cb_license_key", key);
-        state.licensed = true;
-        status.textContent = "✅ License verified. Unlimited unlocked.";
-        setTimeout(closeModal, 800);
-      } else {
-        status.textContent = "❌ Invalid license. Please check or contact support.";
+    if (id==="modalClose"){ closeModal(); return; }
+    if (id==="buyGumroad"){ window.open(GUMROAD_PRODUCT_URL, "_blank"); return; }
+    if (id==="buyStripe"){ window.open(STRIPE_PAYMENT_LINK, "_blank"); return; }
+
+    if (id==="verifyLicense"){
+      const key = ($("#licenseInput").value||"").trim();
+      const status = $("#licenseStatus");
+      if (!key) { status.textContent="Enter a license key."; return; }
+      status.textContent="Verifying...";
+      try{
+        const res = await fetch("/.netlify/functions/verify-gumroad",{
+          method:"POST",
+          headers:{"content-type":"application/json"},
+          body:JSON.stringify({license:key, product_id:GUMROAD_PRODUCT_ID})
+        });
+        const data = await res.json();
+        if (data.valid) {
+          localStorage.setItem("cb_license_valid","true");
+          localStorage.setItem("cb_license_key", key);
+          state.licensed = true;
+          status.textContent = "✅ License verified. Unlimited unlocked.";
+          setTimeout(closeModal, 800);
+        } else {
+          status.textContent = "❌ Invalid license. Please check or contact support.";
+        }
+      }catch(err){
+        status.textContent = "Error verifying license. Try again.";
       }
-    }catch(e){
-      status.textContent = "Error verifying license. Try again.";
     }
   });
 
-  // Initialize UI
+  // Load license state & init
+  try { state.licensed = localStorage.getItem("cb_license_valid")==="true"; } catch(e){}
   loadSettings();
-  // fill starter chips already done above
   render();
-
-  // Version
-  // (Nothing to do; displayed in footer)
 })();
 
 
