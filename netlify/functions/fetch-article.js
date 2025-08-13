@@ -1,5 +1,3 @@
-// netlify/functions/fetch-article.js
-// Improved fetcher: realistic headers + redirects
 // Improved fetcher: realistic headers + redirects
 export async function handler(event) {
   try {
