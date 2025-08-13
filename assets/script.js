@@ -1,7 +1,18 @@
-// v9.1 — mode switch made robust (event delegation), no intro hooks, smarter hashtags
+// v9.2 — Pro polish: presets + saved settings, bigger output, multi copy buttons,
+// trial limiter + license modal (Gumroad verify), Stripe payment link button,
+// "always include hashtags", centered radios fix + robust mode switching.
+
 (function(){
   const $ = (sel)=>document.querySelector(sel);
 
+  // ===== Config =====
+  const VERSION = "9.2";
+  const TRIAL_CAP = 3;
+  const GUMROAD_PRODUCT_ID = "REPLACE_WITH_YOUR_GUMROAD_PRODUCT_ID"; // e.g. prod_ABC123
+  const GUMROAD_PRODUCT_URL = "https://gumroad.com/l/REPLACE";       // your Gumroad product page
+  const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/REPLACE";       // your Stripe Payment Link
+
+  // ===== State =====
   const state = {
     mode:"niche",
     niche:"",
@@ -13,13 +24,14 @@
     useHashtags:true,
     useCTA:true,
     styleText:"",
+    customTags:"",
     qty:5,
-    captions:[]
+    captions:[],
+    licensed: false
   };
 
-  // No “Quick win / Hot take” intros anymore
-  const HOOKS = []; // intentionally empty
-
+  // ===== Data =====
+  const HOOKS = []; // removed intros (Quick win / Hot take)
   const EMOJI=["✨","✅","💡","📌","📈","🕒","📣","🎯","🔥","💬"];
   const CTAS=[
     "Message me for a quick quote.",
@@ -42,7 +54,75 @@
     LinkedIn:["Here is the framework we use with clients.","Add this to your SOPs this quarter."]
   };
 
+  const STARTER_PRESETS = [
+    {name:"Realtors", niche:"Local real estate listings + staging tips", platform:"Instagram", tone:"Professional", length:"Medium", styleText:"crisp, modern, wide margin for headline"},
+    {name:"Fitness coaches", niche:"Home workouts + nutrition habits", platform:"Instagram", tone:"Bold", length:"Short", styleText:"high energy, bold headline, bright"},
+    {name:"Insurance agents", niche:"Family life insurance education + simple quotes", platform:"Facebook", tone:"Friendly", length:"Medium", styleText:"clean, trustworthy, high-contrast"},
+    {name:"Local cafés", niche:"Daily specials + cozy atmosphere", platform:"Instagram", tone:"Friendly", length:"Short", styleText:"warm, inviting, natural light"},
+    {name:"E-commerce promos", niche:"New arrivals + limited-time offers", platform:"TikTok", tone:"Bold", length:"Short", styleText:"graphic, punchy, product-forward"},
+    {name:"Work-from-home", niche:"WFH productivity + home office ideas", platform:"LinkedIn", tone:"Professional", length:"Long", styleText:"minimal, premium, space for headline"},
+  ];
+
+  // ===== Helpers =====
   const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+  function saveSettings(){
+    const blob = {
+      mode:state.mode, niche:state.niche, platform:state.platform, tone:state.tone, length:state.length,
+      useEmojis:state.useEmojis, useHashtags:state.useHashtags, useCTA:state.useCTA,
+      styleText:state.styleText, customTags:state.customTags, qty:state.qty
+    };
+    localStorage.setItem("cb_settings_v1", JSON.stringify(blob));
+  }
+  function loadSettings(){
+    try{
+      const blob = JSON.parse(localStorage.getItem("cb_settings_v1")||"{}");
+      Object.assign(state, blob);
+      // Reflect back to UI
+      document.querySelector(`input[name="mode"][value="${state.mode}"]`)?.click();
+      $("#niche").value = state.niche || "";
+      $("#platform").value = state.platform || "Instagram";
+      $("#tone").value = state.tone || "Friendly";
+      $("#length").value = state.length || "Medium";
+      $("#useEmojis").checked = !!state.useEmojis; $("#valEmojis").textContent = state.useEmojis?"On":"Off";
+      $("#useHashtags").checked = !!state.useHashtags; $("#valTags").textContent = state.useHashtags?"On":"Off";
+      $("#useCTA").checked = !!state.useCTA; $("#valCTA").textContent = state.useCTA?"On":"Off";
+      $("#styleText").value = state.styleText || "";
+      $("#customTags").value = state.customTags || "";
+      $("#qty").value = state.qty || 5;
+    }catch(e){}
+  }
+  function applyPreset(p){
+    state.mode = "niche";
+    state.niche = p.niche; $("#niche").value = p.niche;
+    state.platform = p.platform; $("#platform").value = p.platform;
+    state.tone = p.tone; $("#tone").value = p.tone;
+    state.length = p.length; $("#length").value = p.length;
+    state.styleText = p.styleText; $("#styleText").value = p.styleText;
+    document.getElementById("nicheCard").style.display = "";
+    document.getElementById("articleCard").style.display = "none";
+    saveSettings();
+  }
+  function saveMyPreset(){
+    const p = {
+      niche: $("#niche").value,
+      platform: $("#platform").value,
+      tone: $("#tone").value,
+      length: $("#length").value,
+      styleText: $("#styleText").value
+    };
+    localStorage.setItem("cb_mypreset_v1", JSON.stringify(p));
+    alert("Saved current settings as My Preset.");
+  }
+  function loadMyPreset(){
+    const raw = localStorage.getItem("cb_mypreset_v1");
+    if(!raw) return alert("No preset saved yet.");
+    applyPreset(JSON.parse(raw));
+  }
+  function clearMyPreset(){
+    localStorage.removeItem("cb_mypreset_v1");
+    alert("My Preset cleared.");
+  }
 
   function applyTone(t){
     switch(state.tone){
@@ -59,48 +139,26 @@
     return t + " Step 1: get clear on the outcome. Step 2: use a simple checklist. Step 3: review and improve tomorrow.";
   }
 
-  // Smarter, relevant hashtags
+  // Relevant hashtags + manual include
   function tags(){
     if (!state.useHashtags) return "";
-
     const src = state.mode==="niche" ? state.niche : state.articleText;
     const text = (src || "").toLowerCase();
 
-    // Phrase mappings (high precision)
     const phraseTags = [];
-    if (/work from home|remote work|wfh/.test(text)) {
-      phraseTags.push("#workfromhome","#remotework","#wfh","#homeoffice");
-    }
-    if (/side hustle|side-hustle|extra income/.test(text)) {
-      phraseTags.push("#sidehustle","#extraincome");
-    }
-    if (/insurance|life insurance|term life|whole life/.test(text)) {
-      phraseTags.push("#insurance","#lifeinsurance");
-    }
-    if (/sales|closing|prospecting|pipeline/.test(text)) {
-      phraseTags.push("#sales","#salestraining");
-    }
-    if (/lead gen|lead generation|appointments?/.test(text)) {
-      phraseTags.push("#leadgeneration","#appointments");
-    }
-    if (/content|post|social/.test(text)) {
-      phraseTags.push("#socialmediatips");
-    }
+    if (/work from home|remote work|wfh/.test(text)) phraseTags.push("#workfromhome","#remotework","#wfh","#homeoffice");
+    if (/side hustle|side-hustle|extra income/.test(text)) phraseTags.push("#sidehustle","#extraincome");
+    if (/insurance|life insurance|term life|whole life/.test(text)) phraseTags.push("#insurance","#lifeinsurance");
+    if (/sales|closing|prospecting|pipeline/.test(text)) phraseTags.push("#sales","#salestraining");
+    if (/lead gen|lead generation|appointments?/.test(text)) phraseTags.push("#leadgeneration","#appointments");
+    if (/content|post|social/.test(text)) phraseTags.push("#socialmediatips");
 
-    // Keyword frequency for 2–3 more tags
-    const words = text.replace(/[^a-z0-9\s]/g," ")
-                      .split(/\s+/).filter(Boolean);
+    const words = text.replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean);
     const stop = new Set(["for","the","and","or","of","in","to","a","an","with","on","at","is","are","this","that","it","you","your","our","from","as","by","about","be","can","will","not"]);
     const freq = {};
-    for (const w of words) {
-      if (w.length < 4 || stop.has(w)) continue;
-      freq[w] = (freq[w]||0) + 1;
-    }
-    const top = Object.entries(freq)
-      .sort((a,b)=>b[1]-a[1]).slice(0,3)
-      .map(([w])=>"#"+w.replace(/[^a-z0-9]/g,""));
+    for (const w of words) { if (w.length>=4 && !stop.has(w)) freq[w]=(freq[w]||0)+1; }
+    const top = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([w])=>"#"+w.replace(/[^a-z0-9]/g,""));
 
-    // Fallback platform tags only if needed
     let platformFallback = [];
     if (phraseTags.length + top.length < 2) {
       platformFallback = {
@@ -111,11 +169,12 @@
       }[state.platform] || [];
     }
 
-    const all = [...new Set([...phraseTags, ...top, ...platformFallback])];
-    return all.slice(0,6).join(" ");
+    const manual = (state.customTags||"").split(/\s+/).filter(s=>s.startsWith("#"));
+    const all = [...new Set([...phraseTags, ...top, ...platformFallback, ...manual])];
+    return all.slice(0, 8).join(" ");
   }
 
-  // Robust sentence splitter (no lookbehind)
+  // Sentence extraction
   function extractKeyPoints(text){
     const clean = (text||"").replace(/\s+/g," ").trim();
     if (!clean) return [];
@@ -148,7 +207,7 @@
     const tag  = state.useHashtags ? "\n\n" + tags() : "";
     const caption = (long + emoji + cta + tag).trim();
     const headline = state.niche || (state.platform + " post");
-    return caption + "\n\nCanva image prompt:\n" + canva(headline);
+    return { caption: caption, canva: canva(headline) };
   }
 
   function fromArticle(points, i){
@@ -167,11 +226,11 @@
     const caption = (long + emoji + cta + tag).trim();
 
     const headline = (points[i % points.length] || topic).split(" ").slice(0,8).join(" ");
-    return caption + "\n\nCanva image prompt:\n" + canva(headline, topic);
+    return { caption: caption, canva: canva(headline, topic) };
   }
 
   function render(){
-    // Adjust UI depending on mode
+    // Adjust UI per mode
     const label = $("#articleLabel"), ta=$("#articleText"), fetchRow=$("#fetchRow"), hint=$("#modeHint");
     if (state.mode==="rewrite") {
       label.textContent = "Article text (paste or fetch below)";
@@ -197,20 +256,35 @@
       $("#crumbs").textContent="";
       return;
     }
-    state.captions.forEach((c,i)=>{
+
+    state.captions.forEach((obj,i)=>{
+      const c = obj.caption;
+      const prompt = obj.canva;
       const card=document.createElement("div");
       card.className="cardOut";
+
       const head=document.createElement("div");
       head.className="cardHead";
       head.textContent="Caption "+(i+1);
       const txt=document.createElement("textarea");
-      txt.className="text"; txt.rows=12; txt.readOnly=true; txt.value=c;
+      txt.className="text"; txt.rows=12; txt.readOnly=true; txt.value=c + "\n\nCanva image prompt:\n" + prompt;
+
       const row=document.createElement("div");
       row.className="rowBtns";
-      const b=document.createElement("button");
-      b.className="btn alt"; b.textContent="Copy";
-      b.onclick=()=>{navigator.clipboard.writeText(c); b.textContent="Copied"; setTimeout(()=>b.textContent="Copy",900);};
-      row.appendChild(b);
+
+      const b1=document.createElement("button");
+      b1.className="btn alt"; b1.textContent="Copy Caption";
+      b1.onclick=()=>{navigator.clipboard.writeText(c); b1.textContent="Copied"; setTimeout(()=>b1.textContent="Copy Caption",900);};
+
+      const b2=document.createElement("button");
+      b2.className="btn alt"; b2.textContent="Copy Plain";
+      b2.onclick=()=>{navigator.clipboard.writeText(c.replace(/\n\n#.+$/m,"")); b2.textContent="Copied"; setTimeout(()=>b2.textContent="Copy Plain",900);};
+
+      const b3=document.createElement("button");
+      b3.className="btn alt"; b3.textContent="Copy Canva Prompt";
+      b3.onclick=()=>{navigator.clipboard.writeText(prompt); b3.textContent="Copied"; setTimeout(()=>b3.textContent="Copy Canva Prompt",900);};
+
+      row.appendChild(b1); row.appendChild(b2); row.appendChild(b3);
       card.appendChild(head); card.appendChild(txt); card.appendChild(row);
       out.appendChild(card);
     });
@@ -218,75 +292,91 @@
     const modeText = state.mode==="niche" ? (state.niche||"Any niche")
                    : state.mode==="ig"    ? "Rewriting IG caption"
                    : "Rewriting from article";
-    $("#crumbs").textContent = modeText+" • "+state.platform+" • "+state.tone+" • "+state.length+(state.useCTA?" • Call To Action: On":" • Call To Action: Off");
+    $("#crumbs").textContent = modeText+" • "+state.platform+" • "+state.tone+" • "
+       +state.length+(state.useCTA?" • Call To Action: On":" • Call To Action: Off");
   }
 
-  // Original 'change' binding (keep it)
+  // ===== Bindings =====
   document.querySelectorAll('input[name="mode"]').forEach(r=>{
     r.addEventListener("change",(e)=>{
       state.mode = e.target.value;
       document.getElementById("nicheCard").style.display = state.mode==="niche" ? "" : "none";
       document.getElementById("articleCard").style.display = (state.mode==="rewrite" || state.mode==="ig") ? "" : "none";
-      render();
+      saveSettings(); render();
     });
   });
+  // Robust event delegation (works even if 'change' misses)
+  document.querySelector('.modes')?.addEventListener('click',(e)=>{
+    const input = e.target.closest('input[type="radio"][name="mode"]');
+    if (!input) return;
+    input.checked = true;
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+  });
 
-  // EXTRA: event delegation so mode switching works even if 'change' didn’t bind
-  const modesContainer = document.querySelector('.modes');
-  if (modesContainer) {
-    modesContainer.addEventListener('click', (e) => {
-      const input = e.target.closest('input[type="radio"][name="mode"]');
-      if (!input) return;
-      state.mode = input.value;
-      document.getElementById("nicheCard").style.display =
-        state.mode === "niche" ? "" : "none";
-      document.getElementById("articleCard").style.display =
-        (state.mode === "rewrite" || state.mode === "ig") ? "" : "none";
-      render();
-    });
-  }
-
-  // Other bindings
-  $("#platform").addEventListener("change",e=>state.platform=e.target.value);
-  $("#tone").addEventListener("change",e=>state.tone=e.target.value);
-  $("#length").addEventListener("change",e=>state.length=e.target.value);
-  $("#niche").addEventListener("input",e=>state.niche=e.target.value);
-  $("#articleText").addEventListener("input",e=>state.articleText=e.target.value);
-  $("#styleText").addEventListener("input",e=>state.styleText=e.target.value);
+  $("#platform").addEventListener("change",e=>{state.platform=e.target.value; saveSettings();});
+  $("#tone").addEventListener("change",e=>{state.tone=e.target.value; saveSettings();});
+  $("#length").addEventListener("change",e=>{state.length=e.target.value; saveSettings();});
+  $("#niche").addEventListener("input",e=>{state.niche=e.target.value; saveSettings();});
+  $("#articleText").addEventListener("input",e=>{state.articleText=e.target.value;});
+  $("#styleText").addEventListener("input",e=>{state.styleText=e.target.value; saveSettings();});
+  $("#customTags").addEventListener("input",e=>{state.customTags=e.target.value; saveSettings();});
 
   const chkE=$("#useEmojis"), chkT=$("#useHashtags"), chkC=$("#useCTA");
-  chkE.addEventListener("change",()=>{state.useEmojis=chkE.checked; $("#valEmojis").textContent=chkE.checked?"On":"Off";});
-  chkT.addEventListener("change",()=>{state.useHashtags=chkT.checked; $("#valTags").textContent=chkT.checked?"On":"Off";});
-  chkC.addEventListener("change",()=>{state.useCTA=chkC.checked; $("#valCTA").textContent=chkC.checked?"On":"Off";});
+  chkE.addEventListener("change",()=>{state.useEmojis=chkE.checked; $("#valEmojis").textContent=chkE.checked?"On":"Off"; saveSettings();});
+  chkT.addEventListener("change",()=>{state.useHashtags=chkT.checked; $("#valTags").textContent=chkT.checked?"On":"Off"; saveSettings();});
+  chkC.addEventListener("change",()=>{state.useCTA=chkC.checked; $("#valCTA").textContent=chkC.checked?"On":"Off"; saveSettings();});
 
   $("#qty").addEventListener("input",e=>{
     const v = Math.max(1, Math.min(50, Number(e.target.value)||1));
-    state.qty = v;
+    state.qty = v; saveSettings();
   });
 
-  // Generate
+  // Presets UI
+  const presetWrap = $("#starterPresets");
+  STARTER_PRESETS.forEach(p=>{
+    const el = document.createElement("button");
+    el.className="preset-chip";
+    el.textContent=p.name;
+    el.onclick=()=>applyPreset(p);
+    presetWrap.appendChild(el);
+  });
+  $("#savePreset").addEventListener("click", saveMyPreset);
+  $("#loadPreset").addEventListener("click", loadMyPreset);
+  $("#clearPreset").addEventListener("click", clearMyPreset);
+  $("#resetSettings").addEventListener("click", ()=>{ localStorage.removeItem("cb_settings_v1"); loadSettings(); render(); });
+
+  // Generate with trial limiter
   $("#generate").addEventListener("click",()=>{
-    const n = state.qty;
+    const requested = state.qty;
+    let n = requested;
+
+    if (!state.licensed && requested > TRIAL_CAP) {
+      n = TRIAL_CAP;
+      openModal();
+    }
+    let results;
     if (state.mode==="rewrite" || state.mode==="ig"){
       const raw = extractKeyPoints(state.articleText);
       const pts = raw.length ? raw.slice(0,n) : Array(n).fill("Key insight: make it simple and actionable.");
-      state.captions = Array.from({length:n},(_,i)=>fromArticle(pts,i));
+      results = Array.from({length:n},(_,i)=>fromArticle(pts,i));
     } else {
-      state.captions = Array.from({length:n}, fromNiche);
+      results = Array.from({length:n}, fromNiche);
     }
+    state.captions = results;
     render();
   });
 
   // Copy / CSV / Reset
   $("#copyAll").addEventListener("click",()=>{
     if (!state.captions.length) return;
-    navigator.clipboard.writeText(state.captions.join("\n\n---\n\n"));
+    const blocks = state.captions.map(o => `${o.caption}\n\nCanva image prompt:\n${o.canva}`);
+    navigator.clipboard.writeText(blocks.join("\n\n---\n\n"));
     alert("Copied");
   });
   $("#downloadCSV").addEventListener("click",()=>{
     if (!state.captions.length) return;
-    const header=["#","Mode","Niche","Platform","Tone","Length","CallToAction","Caption"];
-    const rows=state.captions.map((c,i)=>[i+1,state.mode,state.niche||"",state.platform,state.tone,state.length,state.useCTA?"On":"Off",c]);
+    const header=["#","Mode","Niche","Platform","Tone","Length","CallToAction","Caption","CanvaPrompt"];
+    const rows=state.captions.map((o,i)=>[i+1,state.mode,state.niche||"",state.platform,state.tone,state.length,state.useCTA?"On":"Off",o.caption,o.canva]);
     const csv=[header,...rows].map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(",")).join("\n");
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
     const url=URL.createObjectURL(blob);
@@ -313,7 +403,7 @@
   $("#openTikTok").addEventListener("click",()=>openResearch("tiktok"));
   $("#openInstagram").addEventListener("click",()=>openResearch("instagram"));
 
-  // Serverless article fetch (article mode only)
+  // Article fetch (serverless)
   async function fetchArticle(){
     const url = ($("#articleUrl").value||"").trim();
     const status = $("#fetchStatus");
@@ -338,6 +428,50 @@
   }
   $("#btnFetch").addEventListener("click", fetchArticle);
 
+  // ===== License modal & verification =====
+  function openModal(){ $("#modalWrap").classList.add("open"); }
+  function closeModal(){ $("#modalWrap").classList.remove("open"); }
+  $("#btnUnlock").addEventListener("click",(e)=>{e.preventDefault(); openModal();});
+  $("#modalClose").addEventListener("click", closeModal);
+  $("#buyGumroad").addEventListener("click", ()=>window.open(GUMROAD_PRODUCT_URL, "_blank"));
+  $("#buyStripe").addEventListener("click", ()=>window.open(STRIPE_PAYMENT_LINK, "_blank"));
+
+  // Load license state
+  try { state.licensed = localStorage.getItem("cb_license_valid")==="true"; } catch(e){}
+
+  $("#verifyLicense").addEventListener("click", async ()=>{
+    const key = ($("#licenseInput").value||"").trim();
+    const status = $("#licenseStatus");
+    if (!key) { status.textContent="Enter a license key."; return; }
+    status.textContent="Verifying...";
+    try{
+      const res = await fetch("/.netlify/functions/verify-gumroad",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({license:key, product_id:GUMROAD_PRODUCT_ID})
+      });
+      const data = await res.json();
+      if (data.valid) {
+        localStorage.setItem("cb_license_valid", "true");
+        localStorage.setItem("cb_license_key", key);
+        state.licensed = true;
+        status.textContent = "✅ License verified. Unlimited unlocked.";
+        setTimeout(closeModal, 800);
+      } else {
+        status.textContent = "❌ Invalid license. Please check or contact support.";
+      }
+    }catch(e){
+      status.textContent = "Error verifying license. Try again.";
+    }
+  });
+
+  // Initialize UI
+  loadSettings();
+  // fill starter chips already done above
   render();
+
+  // Version
+  // (Nothing to do; displayed in footer)
 })();
+
 
