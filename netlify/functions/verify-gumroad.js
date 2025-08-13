@@ -1,6 +1,6 @@
 // netlify/functions/verify-gumroad.js
-// Verifies a Gumroad license key for a specific product_id.
-// POST body: { license: "LICENSE_KEY", product_id: "YOUR_PRODUCT_ID" }
+// Verifies a Gumroad license key for a specific product (ID or permalink).
+// POST JSON: { "license": "LICENSE_KEY", "product_id": "YOUR_PRODUCT_ID_OR_PERMALINK" }
 export async function handler(event) {
   try {
     const { license, product_id } = JSON.parse(event.body || "{}");
@@ -10,10 +10,9 @@ export async function handler(event) {
 
     const form = new URLSearchParams();
     form.set("product_id", product_id);
-    form.set("product_permalink", product_id); // accepts either id or permalink
+    form.set("product_permalink", product_id); // supports permalink too
     form.set("license_key", license);
     form.set("increment_uses_count", "false");
-
 
     const resp = await fetch("https://api.gumroad.com/v2/licenses/verify", {
       method: "POST",
